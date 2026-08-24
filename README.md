@@ -51,14 +51,26 @@ Uma aplicação web simples em Python (Flask) que gera um heatmap (gráfico de c
 
 ## Como Fazer o Deploy (Nuvem)
 
-Você pode publicar esta aplicação facilmente e de forma gratuita em serviços como Render ou Railway, já que utilizamos o framework leve Flask e `gunicorn`.
+### ▲ Deploy no Vercel (Recomendado)
+O projeto já inclui o arquivo `vercel.json` configurado, portanto o deploy é simples:
 
-### Deploy no Render
+1. Crie uma conta no [Vercel](https://vercel.com/) usando sua conta GitHub.
+2. Clique em **Add New → Project**.
+3. Importe o repositório **`monitoramento-atividade-GITHUB`**.
+4. (Importante) Na seção **Environment Variables**, adicione:
+   - `GITHUB_TOKEN` = seu [Personal Access Token do GitHub](https://github.com/settings/tokens)
+5. Clique em **Deploy**. Em poucos segundos a aplicação estará no ar!
+
+> **Nota:** O Vercel executa a aplicação Flask como uma **serverless function** via `@vercel/python`. O `gunicorn` **não é necessário** no Vercel, apenas para o Render.
+
+---
+
+### Deploy no Render (Alternativa)
 1. Crie uma conta no [Render](https://render.com/).
 2. Conecte sua conta do GitHub.
 3. Clique em **New** > **Web Service**.
 4. Selecione este repositório.
 5. Em **Build Command**, insira: `pip install -r requirements.txt`
 6. Em **Start Command**, insira: `gunicorn app:app`
-7. (Importante) Vá em **Environment Variables** e adicione a variável `GITHUB_TOKEN` com o seu token gerado.
-8. Clique em **Create Web Service**. A aplicação será construída e ficará disponível em uma URL pública!
+7. (Importante) Vá em **Environment Variables** e adicione a variável `GITHUB_TOKEN`.
+8. Clique em **Create Web Service**.
