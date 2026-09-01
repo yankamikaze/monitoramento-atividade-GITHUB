@@ -54,10 +54,15 @@ def get_user_prs(username):
             created_at = item["created_at"]
             date_str = created_at.split("T")[0]
             
+            state = item["state"]
+            pr_info = item.get("pull_request", {})
+            if state == "closed" and pr_info.get("merged_at"):
+                state = "merged"
+            
             prs.append({
                 "title": item["title"],
                 "url": item["html_url"],
-                "state": item["state"],
+                "state": state,
                 "date": date_str,
                 "created_at": created_at
             })
@@ -67,18 +72,25 @@ def get_user_prs(username):
             
         page += 1
 
-    # Group by date
+    # Group by date and calculate stats
     prs_by_date = {}
+    stats = {"open": 0, "closed": 0, "merged": 0}
+    
     for pr in prs:
         date = pr["date"]
         if date not in prs_by_date:
             prs_by_date[date] = []
         prs_by_date[date].append(pr)
+        
+        state = pr["state"]
+        if state in stats:
+            stats[state] += 1
 
     return jsonify({
         "username": username,
         "year": year,
         "total_prs": len(prs),
+        "stats": stats,
         "prs_by_date": prs_by_date
     })
 
