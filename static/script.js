@@ -30,7 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.error || 'Failed to fetch data');
             }
 
-            statsDiv.textContent = `${data.total_prs} pull requests in ${year}`;
+            let statsHtml = `<strong>${data.total_prs} pull requests in ${year}</strong>`;
+            if (data.stats) {
+                statsHtml += ` <span style="font-size: 0.9em; margin-left: 15px; color: #8b949e;">( 🟢 ${data.stats.open} open | 🟣 ${data.stats.merged} merged | 🔴 ${data.stats.closed} closed )</span>`;
+            }
+            statsDiv.innerHTML = statsHtml;
             renderHeatmap(year, data.prs_by_date);
 
         } catch (error) {
@@ -119,7 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxPrs = 5;
             for (let i = 0; i < Math.min(day.prs.length, maxPrs); i++) {
                 const pr = day.prs[i];
-                const stateSymbol = pr.state === 'closed' ? '🔴' : '🟢';
+                let stateSymbol = '🟢';
+                if (pr.state === 'closed') stateSymbol = '🔴';
+                else if (pr.state === 'merged') stateSymbol = '🟣';
                 html += `<div>${stateSymbol} ${escapeHtml(pr.title)}</div>`;
             }
             if (day.prs.length > maxPrs) {
@@ -151,5 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
              .replace(/>/g, "&gt;")
              .replace(/"/g, "&quot;")
              .replace(/'/g, "&#039;");
+    }
+
+    // Auto-load if username is present
+    if (usernameInput.value.trim() !== '') {
+        fetchAndRender();
     }
 });
