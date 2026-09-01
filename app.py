@@ -26,70 +26,63 @@ def get_user_prs(username):
     if GITHUB_TOKEN:
         headers["Authorization"] = f"token {GITHUB_TOKEN}"
 
-    # We use GitHub's Search API to find Pull Requests authored by the user
-    # Query: type:pr author:<username> created:<year>-01-01..<year>-12-31
-    # We will fetch all PRs (handling pagination)
+    # GraphQL query to get all contributions (commits, PRs, issues)
+    query = """
+    query($username: String!, $from: DateTime!, $to: DateTime!) {
+      user(login: $username) {
+        contributionsCollection(from: $from, to: $to) {
+          contributionCalendar {
+            totalContributions
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+              }
+            }
+          }
+        }
+      }
+    }
+    """
     
-    prs = []
-    page = 1
-    per_page = 100
+    variables = {
+        "username": username,
+        "from": f"{year}-01-01T00:00:00Z",
+        "to": f"{year}-12-31T23:59:59Z"
+    }
     
-    while True:
-        query = f"type:pr author:{username} created:{year}-01-01..{year}-12-31"
-        url = f"https://api.github.com/search/issues?q={query}&per_page={per_page}&page={page}"
+    response = requests.post(
+        "https://api.github.com/graphql",
+        headers=headers,
+        json={"query": query, "variables": variables}
+    )
+    
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to fetch data from GitHub", "details": response.text}), response.status_code
         
-        response = requests.get(url, headers=headers)
+    data = response.json()
+    if "errors" in data:
+        return jsonify({"error": "GraphQL error", "details": data["errors"]}), 400
         
-        if response.status_code != 200:
-            return jsonify({"error": "Failed to fetch data from GitHub", "details": response.json()}), response.status_code
-            
-        data = response.json()
-        items = data.get("items", [])
-        
-        if not items:
-            break
-            
-        for item in items:
-            # item is an issue object, but we filtered by type:pr
-            created_at = item["created_at"]
-            date_str = created_at.split("T")[0]
-            
-            state = item["state"]
-            pr_info = item.get("pull_request", {})
-            if state == "closed" and pr_info.get("merged_at"):
-                state = "merged"
-            
-            prs.append({
-                "title": item["title"],
-                "url": item["html_url"],
-                "state": state,
-                "date": date_str,
-                "created_at": created_at
-            })
-            
-        if len(items) < per_page:
-            break
-            
-        page += 1
-
-    # Group by date and calculate stats
+    calendar = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]
+    total_activities = calendar["totalContributions"]
+    
+    # Restructure into our existing format for the frontend
     prs_by_date = {}
-    stats = {"open": 0, "closed": 0, "merged": 0}
+    for week in calendar["weeks"]:
+        for day in week["contributionDays"]:
+            date_str = day["date"].split("T")[0]
+            count = day["contributionCount"]
+            if count > 0:
+                # Mock PR entries to keep frontend structure compatible
+                prs_by_date[date_str] = [{"title": "Atividade", "state": "merged"} for _ in range(count)]
     
-    for pr in prs:
-        date = pr["date"]
-        if date not in prs_by_date:
-            prs_by_date[date] = []
-        prs_by_date[date].append(pr)
-        
-        state = pr["state"]
-        if state in stats:
-            stats[state] += 1
+    stats = {"open": 0, "closed": 0, "merged": total_activities}
 
     return jsonify({
         "username": username,
         "year": year,
-        "total_prs": len(prs),
+        "total_prs": total_activities,
         "stats": stats,
         "prs_by_date": prs_by_date
     })

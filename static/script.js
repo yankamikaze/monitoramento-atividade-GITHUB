@@ -30,10 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.error || 'Failed to fetch data');
             }
 
-            let statsHtml = `<strong>${data.total_prs} pull requests in ${year}</strong>`;
-            if (data.stats) {
-                statsHtml += ` <span style="font-size: 0.9em; margin-left: 15px; color: #8b949e;">( 🟢 ${data.stats.open} open | 🟣 ${data.stats.merged} merged | 🔴 ${data.stats.closed} closed )</span>`;
-            }
+            let statsHtml = `<strong>${data.total_prs} atividades em ${year}</strong>`;
             statsDiv.innerHTML = statsHtml;
             renderHeatmap(year, data.prs_by_date);
 
@@ -115,23 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showTooltip(event, day) {
-        const plural = day.count === 1 ? 'pull request' : 'pull requests';
-        let html = `<strong>${day.count} ${plural}</strong> on ${day.date}`;
+        // Convert date to Brazilian format DD/MM/YYYY
+        const [y, m, d] = day.date.split('-');
+        const brDate = `${d}/${m}/${y}`;
         
-        if (day.count > 0) {
-            html += `<br><br>`;
-            const maxPrs = 5;
-            for (let i = 0; i < Math.min(day.prs.length, maxPrs); i++) {
-                const pr = day.prs[i];
-                let stateSymbol = '🟢';
-                if (pr.state === 'closed') stateSymbol = '🔴';
-                else if (pr.state === 'merged') stateSymbol = '🟣';
-                html += `<div>${stateSymbol} ${escapeHtml(pr.title)}</div>`;
-            }
-            if (day.prs.length > maxPrs) {
-                html += `<div>... and ${day.prs.length - maxPrs} more</div>`;
-            }
-        }
+        const plural = day.count === 1 ? 'atividade' : 'atividades';
+        let html = `<strong>${day.count} ${plural}</strong> em ${brDate}`;
         
         tooltip.innerHTML = html;
         tooltip.style.opacity = 1;
